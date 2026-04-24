@@ -204,6 +204,8 @@ def fetch_dep_files(repo) -> dict:
     for fname in DEPENDENCY_FILES:
         try:
             f = repo.get_contents(fname)
+            if isinstance(f, list):
+                continue  # path resolved to a directory, skip
             content = base64.b64decode(f.content).decode("utf-8", errors="replace")
             found[fname] = content
         except GithubException:
