@@ -495,8 +495,18 @@ def render_cloud_costs(classified: list):
 # Core analyser
 # ─────────────────────────────────────────────────────────────────────────────
 
+def fetch_all_repos(org) -> dict:
+    """Returns {repo_name: []} for all non-archived repos in the org."""
+    return {
+        repo.name: []
+        for repo in org.get_repos()
+        if not repo.archived
+    }
+
+
 def analyse(token: str, org_name: str, team_slugs: list, gp: dict,
-            ownership: dict, cloud_costs: dict, output: Optional[str]) -> int:
+            ownership: dict, cloud_costs: dict, output: Optional[str],
+            all_repos: bool = False) -> int:
 
     g = Github(token, per_page=100)
     try:
@@ -505,18 +515,28 @@ def analyse(token: str, org_name: str, team_slugs: list, gp: dict,
         console.print(f"[red]Cannot access org '{org_name}': {e.data.get('message', e)}")
         return 1
 
-    console.print(Panel(
-        f"[bold cyan]Golden Path Gap Analyser[/]\n"
-        f"Org: [yellow]{org_name}[/]  |  Teams: [yellow]{', '.join(team_slugs)}[/]",
-        expand=False,
-    ))
+    if all_repos:
+        scope_label = "all repos"
+        console.print(Panel(
+            f"[bold cyan]Golden Path Gap Analyser[/]\n"
+            f"Org: [yellow]{org_name}[/]  |  Scope: [yellow]entire org[/]",
+            expand=False,
+        ))
+        console.print("\n[cyan]Fetching all repos in org…[/]")
+        repo_teams = fetch_all_repos(org)
+    else:
+        scope_label = ', '.join(team_slugs)
+        console.print(Panel(
+            f"[bold cyan]Golden Path Gap Analyser[/]\n"
+            f"Org: [yellow]{org_name}[/]  |  Teams: [yellow]{scope_label}[/]",
+            expand=False,
+        ))
+        repo_teams = fetch_team_repos(org, team_slugs)
+        if not repo_teams:
+            console.print("[red]No repos found for the specified teams. Check team slugs.")
+            return 1
 
-    repo_teams = fetch_team_repos(org, team_slugs)
-    if not repo_teams:
-        console.print("[red]No repos found for the specified teams. Check team slugs.")
-        return 1
-
-    console.print(f"\n[cyan]Found {len(repo_teams)} repos. Scanning dependency files…[/]\n")
+    console.print(f"\n[cyan]Found {len(repo_teams)} active repos. Scanning dependency files…[/]\n")
 
     results = []
     for repo_name, teams in sorted(repo_teams.items()):
@@ -569,11 +589,11 @@ def analyse(token: str, org_name: str, team_slugs: list, gp: dict,
     if output:
         export = {
             "org":   org_name,
-            "teams": team_slugs,
+            "scope": "all-repos" if all_repos else team_slugs,
             "repos": [
                 {
                     "repo":       r["repo"],
-                    "teams":      r["teams"],
+                    "teams":      r["teams"] or ["—"],
                     "lang":       r["lang"],
                     "tools":      list(r["tools"].keys()),
                     "eol_issues": r["eol_issues"],
@@ -619,17 +639,18 @@ Examples:
     --output report.json
         """,
     )
-    parser.add_argument("--org",         required=True, help="GitHub org name")
-    parser.add_argument("--teams",       required=True, help="Comma-separated GitHub team slugs to analyse")
-    parser.add_argument("--golden-path", default=None,
-                        help=f"Path to Golden Path YAML (default: bundled golden_path.yml)")
-    parser.add_argument("--cloud-costs", default=None,
-                        help="AWS Cost Explorer CSV export (Service, Month1, Month2, …)")
-    parser.add_argument("--ownership",   default=None,
-                        help="CSV mapping repos to systems and teams (columns: repo, system, team, status)")
-    parser.add_argument("--output",      default=None, help="Export full results to JSON")
-    parser.add_argument("--token",       default=None, help="GitHub token (or set GITHUB_TOKEN env var)")
+    parser.add_argument("--org",         required=True,  help="GitHub org name")
+    parser.add_argument("--teams",       default=None,   help="Comma-separated GitHub team slugs (omit if using --all-repos)")
+    parser.add_argument("--all-repos",   action="store_true", help="Scan all non-archived repos in the org instead of specific teams")
+    parser.add_argument("--golden-path", default=None,   help="Path to Golden Path YAML (default: bundled golden_path.yml)")
+    parser.add_argument("--cloud-costs", default=None,   help="AWS Cost Explorer CSV export (Service, Month1, Month2, …)")
+    parser.add_argument("--ownership",   default=None,   help="CSV mapping repos to systems and teams (columns: repo, system, team, status)")
+    parser.add_argument("--output",      default=None,   help="Export full results to JSON")
+    parser.add_argument("--token",       default=None,   help="GitHub token (or set GITHUB_TOKEN env var)")
     args = parser.parse_args()
+
+    if not args.all_repos and not args.teams:
+        parser.error("Provide --teams <slugs> or --all-repos to scan the entire org.")
 
     token = args.token or os.environ.get("GITHUB_TOKEN")
     if not token:
@@ -638,11 +659,11 @@ Examples:
     gp          = load_golden_path(args.golden_path)
     ownership   = load_ownership(args.ownership)
     cloud_costs = load_cloud_costs(args.cloud_costs)
-    team_slugs  = [t.strip() for t in args.teams.split(",")]
+    team_slugs  = [t.strip() for t in args.teams.split(",")] if args.teams else []
 
     raise SystemExit(analyse(token, org_name=args.org, team_slugs=team_slugs,
-                             gp=gp, ownership=ownership,
-                             cloud_costs=cloud_costs, output=args.output))
+                             gp=gp, ownership=ownership, cloud_costs=cloud_costs,
+                             output=args.output, all_repos=args.all_repos))
 
 
 if __name__ == "__main__":
