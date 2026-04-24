@@ -1,0 +1,305 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Golden Path — Default Configuration
+#
+# This file is the suggested starting point derived from common engineering
+# best practices. Override any section to match your organisation's standards.
+#
+# Pass a custom file via: --golden-path /path/to/your_golden_path.yml
+# If --golden-path is omitted, this file is used automatically.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ── Languages ─────────────────────────────────────────────────────────────────
+languages:
+  backend:
+    preferred: [Go]
+    allowed: [Go, NodeJs]
+    note: >
+      Go is preferred for backend services — statically typed, high performance,
+      low memory footprint, ideal for cloud-native services and concurrency.
+      NodeJs is allowed when iteration speed matters more than raw performance,
+      for JS-heavy stacks, lightweight orchestration layers, or npm ecosystem usage.
+
+  data_science:
+    preferred: [Python]
+    note: "Python 3 is the standard for ML, analytics, and scripting."
+
+  mobile:
+    preferred: [Kotlin]
+    note: "Kotlin is the preferred language for Android. Swift for iOS."
+
+  frontend:
+    preferred: [TypeScript]
+    allowed: [TypeScript, JavaScript]
+
+  avoid:
+    - Java
+    - Ruby
+    - PHP
+
+
+# ── Databases ─────────────────────────────────────────────────────────────────
+databases:
+  relational:
+    preferred: [MySQL, PostgreSQL]
+    note: >
+      SQL is the standard for interacting with relational databases —
+      defining schemas, querying data, and performing updates safely.
+
+  nosql:
+    preferred: [MongoDB]
+    note: >
+      MongoDB is the standard document store — use when your application
+      demands flexibility, scalability, and speed for semi-structured or
+      rapidly evolving data.
+
+  cache:
+    preferred: [ValKey]
+    avoid: [Redis, Memcached, ElastiCache]
+    note: >
+      ValKey is the open-source in-memory data store standard.
+      Use as a caching layer to reduce database load and latency.
+      Not for long-term storage of large datasets — RAM is expensive.
+      Redis/ElastiCache should be migrated to ValKey.
+
+  avoid:
+    # These databases are GP violations wherever found in backend services
+    - Cassandra
+    - Neo4j
+    - DynamoDB
+
+
+# ── Messaging / Streaming ─────────────────────────────────────────────────────
+messaging:
+  # Set `standard` to your single preferred messaging system once decided,
+  # or leave null to track proliferation without failing the check.
+  standard: null
+
+  allowed: [SQS, Kafka, Kinesis, SNS]
+  avoid: []
+  note: >
+    Messaging standard is not yet formally defined.
+    Proliferation of SQS, Kafka, Kinesis, and SNS should be rationalised
+    into a single standard. Update `standard` once agreed.
+
+
+# ── API Style ─────────────────────────────────────────────────────────────────
+api:
+  preferred: [GraphQL, REST]
+  note: >
+    GraphQL: use when frontend iterates quickly, aggregating multiple backend
+    services, client needs control over data shape, or for complex nested data.
+    REST: use when the team is new to GraphQL, simplicity matters more than
+    flexibility, caching via HTTP is important, or for strict resource-based APIs.
+
+
+# ── Compute ───────────────────────────────────────────────────────────────────
+compute:
+  preferred: [ECS]
+  allowed: [EC2, ECS]
+  avoid: [Lambda]
+  container_runtime: Docker
+  note: >
+    AWS ECS is the standard for running containerised applications in production.
+    Docker is the standard containerisation platform.
+    AWS EC2 only where full OS and software stack control is required.
+    Lambda is outside the standard — use ECS instead.
+
+
+# ── CDN ───────────────────────────────────────────────────────────────────────
+cdn:
+  preferred: [Cloudflare]
+  note: >
+    Cloudflare is the standard CDN — use for faster, more reliable, and
+    scalable content delivery, especially for globally distributed users.
+
+
+# ── Observability ─────────────────────────────────────────────────────────────
+observability:
+  preferred: [StatsD/TIG, OpenTelemetry]
+  stack: TIG   # Telegraf + InfluxDB + Grafana
+  instrumentation: OpenTelemetry
+  avoid: [New Relic, Datadog, CloudWatch]
+  note: >
+    TIG (Telegraf + InfluxDB + Grafana) is the standard observability stack.
+    Instrument every service using OpenTelemetry.
+    Ensure dashboards and alerts exist for service health (error rate, latency),
+    resource utilisation, and business KPIs.
+    New Relic, Datadog, and CloudWatch are not approved — consolidate to TIG.
+
+
+# ── Security ──────────────────────────────────────────────────────────────────
+security:
+  standard: OWASP Top 10
+  note: >
+    Apply OWASP Top 10 whenever developing new functionality or fixing issues.
+    Community-driven baseline for secure development and testing practices.
+
+
+# ── CI/CD ─────────────────────────────────────────────────────────────────────
+ci_cd:
+  preferred: Jenkins
+  note: >
+    Jenkins is the standard automation engine for building, testing, and
+    deploying code continuously across all environments.
+
+
+# ── Version Control ───────────────────────────────────────────────────────────
+version_control:
+  standard: Git
+  note: "All developed code must be in Git."
+
+
+# ── Product Analytics ─────────────────────────────────────────────────────────
+analytics:
+  preferred: Amplitude
+  note: >
+    Amplitude is the standard for product analytics and user behaviour insights.
+    Use post-launch to measure adoption, identify friction in critical flows,
+    and understand what drives retention or virality.
+
+
+# ── ML / Deep Learning ────────────────────────────────────────────────────────
+ml:
+  preferred: PyTorch
+  language: Python
+  note: >
+    PyTorch is the standard deep learning framework — use for building,
+    training, and deploying neural networks when you need flexibility,
+    fast iteration, and GPU acceleration.
+
+
+# ── Project Management ────────────────────────────────────────────────────────
+project_management:
+  preferred: Jira
+  knowledge_base: Atlassian Confluence
+
+
+# ── Cloud Services — GP Alignment Map ─────────────────────────────────────────
+# Classifies cloud cost line items as: compliant | violation | gap | operational | emerging
+# Add or edit entries to match your cloud provider's cost export service names.
+cloud_services:
+  "Elastic Compute Cloud":
+    status: compliant
+    note: "GP standard compute — verify ECS adoption is growing alongside"
+  "Elastic Container Service":
+    status: compliant
+    note: "GP preferred container orchestration"
+  "EC2 Container Registry (ECR)":
+    status: compliant
+    note: "Required for Docker/ECS workflows"
+  "Relational Database Service":
+    status: compliant
+    note: "GP standard — SQL via managed RDS"
+  "Elastic Load Balancing":
+    status: compliant
+    note: "Expected for public-facing ECS/EC2 services"
+  "Simple Storage Service":
+    status: compliant
+    note: "Standard object storage"
+  "S3 Glacier Deep Archive":
+    status: compliant
+    note: "Long-term archival storage"
+  "Virtual Private Cloud":
+    status: compliant
+    note: "Core networking infrastructure"
+  "GuardDuty":
+    status: compliant
+    note: "Security scanning — aligns with OWASP mandate"
+  "Key Management Service":
+    status: compliant
+    note: "Encryption key management"
+  "Secrets Manager":
+    status: compliant
+    note: "Secrets management"
+  "Route 53":
+    status: compliant
+    note: "DNS"
+  "CloudTrail":
+    status: compliant
+    note: "Audit logging"
+  "Security Hub":
+    status: compliant
+    note: "Security posture management"
+  "Systems Manager":
+    status: compliant
+    note: "Infrastructure management"
+
+  "ElastiCache":
+    status: violation
+    note: "GP mandates ValKey — migrate away from AWS-managed Redis"
+  "CloudWatch":
+    status: violation
+    note: "GP mandates TIG for observability — consolidate monitoring to TIG"
+  "QuickSight":
+    status: violation
+    note: "GP mandates Amplitude for product analytics"
+  "DynamoDB":
+    status: violation
+    note: "GP mandates MongoDB for NoSQL — DynamoDB diverges from standard"
+  "Lambda":
+    status: violation
+    note: "GP mandates ECS for compute — Lambda is outside GP"
+  "Personalize":
+    status: violation
+    note: "GP mandates PyTorch for ML — AWS Personalize is outside GP"
+
+  "Simple Queue Service":
+    status: gap
+    note: "Messaging standard not yet defined — SQS vs Kafka vs Kinesis unresolved"
+  "Glue":
+    status: gap
+    note: "Not in GP — AWS-managed ETL; GP standard is Python 3 pipelines"
+  "Kinesis Firehose":
+    status: gap
+    note: "Streaming standard not defined in GP"
+  "Kinesis":
+    status: gap
+    note: "Streaming standard not defined in GP"
+  "Athena":
+    status: gap
+    note: "Not in GP — S3 SQL query layer; likely data team usage"
+  "Simple Notification Service":
+    status: gap
+    note: "Not in GP — push notification mechanism not standardised"
+  "Simple Email Service":
+    status: gap
+    note: "Not in GP — email sending mechanism not defined"
+  "OpenSearch Service":
+    status: gap
+    note: "Not in GP — search infrastructure not standardised"
+  "Rekognition":
+    status: gap
+    note: "Not in GP — image ML workloads should use PyTorch per GP"
+  "Step Functions":
+    status: gap
+    note: "Not in GP — workflow orchestration not standardised"
+  "API Gateway":
+    status: gap
+    note: "Not in GP — use ECS-hosted GraphQL/REST endpoints instead"
+
+  "Database Migration Service":
+    status: operational
+    note: "Temporary migration tooling — not a permanent technology choice"
+  "Data Transfer":
+    status: operational
+    note: "Infrastructure egress cost — not a technology choice"
+  "Partner Led Premium Support":
+    status: operational
+    note: "Cloud support tier"
+  "Cost Explorer":
+    status: operational
+    note: "Cloud cost tooling"
+  "End User Messaging":
+    status: operational
+    note: "Minimal operational usage"
+  "CloudWatch Events":
+    status: operational
+    note: "Legacy event routing — negligible spend"
+  "Global Accelerator":
+    status: operational
+    note: "Network acceleration — evaluate if Cloudflare CDN covers this"
+
+  "Bedrock AgentCore":
+    status: emerging
+    note: "New GenAI service — not in GP, govern before spend scales"

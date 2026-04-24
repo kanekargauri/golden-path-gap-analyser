@@ -1,0 +1,7 @@
+repo,system,team,status
+my-auth-service,Auth,platform-core,active
+my-user-service,User,platform-core,active
+my-gateway,GraphQL Gateway,platform-core,active
+my-infra,AWS Infrastructure,platform-infra,active
+my-ci-pipeline,CI/CD,platform-infra,active
+my-security-tower,Security,platform-security,active
